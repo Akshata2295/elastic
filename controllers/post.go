@@ -66,27 +66,35 @@ func CreateUser(c *gin.Context) {
 
 func UpdateUser(c *gin.Context) {
 	client := GetESClient()
+
+	var users models.User
+	if err := c.BindJSON(&users); err != nil {
+		panic(err)
+	}
 	body := map[string]interface{}{
 		"doc": map[string]interface{}{
-			"name": "akshata",
+			"name": users.Name,
+			"age": users.Age,
 		},
 	}
 
 	index := c.Param("index")
 	id := c.Param("id")
+	
 	jsonBody, _ := json.Marshal(body)
 	req := esapi.UpdateRequest{
-		Index:        index,
-		DocumentID:   id,
-		Body:         bytes.NewReader(jsonBody),
+		Index:      index,
+		DocumentID: id,
+		Body:       bytes.NewReader(jsonBody),
 	}
-
-	res, err := req.Do(context.Background(), client)
-	if err != nil {}
+	res, _ := req.Do(context.Background(), client)
 	defer res.Body.Close()
-	fmt.Println(res.String())	
-	c.JSON(http.StatusOK,"update user")
-
+	fmt.Println(res.String())
+	c.JSON(http.StatusCreated, gin.H{
+		"id": id,
+		"name": users.Name,
+		"age":  users.Age,
+	})
 }
 
 func DeleteUser(c *gin.Context) {
