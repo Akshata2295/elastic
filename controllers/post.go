@@ -16,13 +16,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
-func CreateUser(c *gin.Context) {
+func GetESClient() *elasticsearch.Client {
+	/* Fetching elastic Search Client */
 	client, err := elasticsearch.NewDefaultClient()
 	if err != nil {
 		panic(err)
 	}
+	return client
+
+}
+
+
+func CreateUser(c *gin.Context) {
+	client := GetESClient()
 	// Create a new user.
 	var users models.User
 	if err := c.BindJSON(&users); err != nil {
@@ -59,10 +65,7 @@ func CreateUser(c *gin.Context) {
 }
 
 func UpdateUser(c *gin.Context) {
-	client, err := elasticsearch.NewDefaultClient()
-	if err != nil {
-		panic(err)
-	}
+	client := GetESClient()
 	body := map[string]interface{}{
 		"doc": map[string]interface{}{
 			"name": "akshata",
@@ -87,15 +90,7 @@ func UpdateUser(c *gin.Context) {
 }
 
 func DeleteUser(c *gin.Context) {
-	client, err := elasticsearch.NewDefaultClient()
-	if err != nil {
-		panic(err)
-	}
-
-	if err != nil {
-		// handle error
-	}
-
+	client := GetESClient()
 	id := c.Param("id")
 	index := c.Param("index")
 
@@ -123,15 +118,7 @@ func DeleteUser(c *gin.Context) {
 
 func GetUser(c *gin.Context) {
     var doc map[string]interface{}
-    client, err := elasticsearch.NewDefaultClient()
-    if err != nil {
-        panic(err)
-    }
-
-    if err != nil {
-        // handle error
-        panic(err)
-    }
+    client := GetESClient()
 
     id := c.Param("id")
     index := c.Param("index")
@@ -165,33 +152,35 @@ func GetUser(c *gin.Context) {
 
 
 func GetAllUser(c *gin.Context) {
-    client, err := elasticsearch.NewDefaultClient()
-    if err != nil {
-        panic(err)
-    }
+	client := GetESClient()
 
-    index := c.Param("index")
-    
-    // Set up the update request
-    getReq := esapi.GetRequest{
-        Index:      index,
-    }
+	index := c.Param("index")
 
-    // Perform the update
-    res, err := getReq.Do(context.Background(), client)
-    if err != nil {
-        // handle error
-        panic(err)
-    }
+	// Set up the update request
+	req := esapi.SearchRequest{
+		Index: []string{index},
+	}
 
-    fmt.Println(res)
-	var doc map[string]interface{}
-    err = json.NewDecoder(res.Body).Decode(&doc)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing response body"})
-        return
-    }
+	// Perform the update
+	res, err := req.Do(context.Background(), client)
+	if err != nil {
+		// handle error
+		panic(err)
+	}
 
-    // Return the document in the response
-    c.JSON(http.StatusOK, doc)
+	fmt.Println(res)
+	var results struct {
+		Hits struct {
+			Hits []json.RawMessage `json:"hits"`
+		} `json:"hits"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&results)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing response body"})
+		return
+	}
+
+	// Return the search results in the response
+	c.JSON(http.StatusOK, results.Hits.Hits)
 }
