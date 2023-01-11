@@ -29,10 +29,12 @@ func SetupRouter() *gin.Engine {
 		c.Next()
 	})
 	r.POST("/users/:index", controllers.CreateUser)
-	r.PUT("/users/:index/:id", controllers.UpdateUser)
+	r.PATCH("/users/:index/:id", controllers.UpdateUser)
 	r.DELETE("/users/:index/:id", controllers.DeleteUser)
 	r.GET("/users/:index/:id", controllers.GetUser)
 	r.GET("/users/:index", controllers.GetAllUser)
+	r.POST("/users", controllers.CreateUserBatch)
+	r.GET("/users/:index/search",controllers.SearchUser)
 	
 	return r
 }
